@@ -1,0 +1,28 @@
+payload:
+  # 匹配后缀
+  - DOMAIN-SUFFIX,viclub.top,Emby
+  - DOMAIN-SUFFIX,vfing.de,Emby 
+  - DOMAIN-SUFFIX,sakim.org,Emby
+  - DOMAIN-SUFFIX,cn2gias.uk,Emby
+  - DOMAIN-SUFFIX,114514.quest,Emby
+  - DOMAIN-SUFFIX,heisi.org,Emby
+  - DOMAIN-SUFFIX,hohai.eu.org,Emby
+  - DOMAIN-SUFFIX,jsq.vban.xyz,Emby
+  - DOMAIN-SUFFIX,bangumi.ca,Emby
+  - DOMAIN-SUFFIX,shrekmedia.org,Emby
+  - DOMAIN-SUFFIX,jzjz.site,Emby
+  - DOMAIN-SUFFIX,emby.wtf,Emby
+  - DOMAIN-SUFFIX,term.wtf,Emby
+  - DOMAIN-SUFFIX,101514.xyz,Emby
+  - DOMAIN-SUFFIX,istyboe.top,Emby
+  - DOMAIN-SUFFIX,istyboe.top,Emby
+  - DOMAIN-SUFFIX,emby.dnscf.dpdns.org,Emby
+  # 匹配关键字
+  # - DOMAIN-KEYWORD,netflix
+  # - DOMAIN-KEYWORD,spotify
+  
+  # 全匹配
+  #- DOMAIN,my.personal.site.com
+  
+  # IP 段
+  #- IP-CIDR,91.108.4.0/22,no-resolve
