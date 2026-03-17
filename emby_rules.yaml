@@ -1,6 +1,6 @@
 payload:
   # 匹配后缀
-  - DOMAIN-SUFFIX,viclub.top,Emby
+  - DOMAIN-SUFFIX,viclub.top
   - DOMAIN-SUFFIX,vfing.de,Emby 
   - DOMAIN-SUFFIX,sakim.org,Emby
   - DOMAIN-SUFFIX,cn2gias.uk,Emby
