@@ -17,6 +17,8 @@ payload:
   - DOMAIN-SUFFIX,istyboe.top
   - DOMAIN-SUFFIX,istyboe.top
   - DOMAIN-SUFFIX,emby.dnscf.dpdns.org
+  - DOMAIN-SUFFIX,23333334.xyz
+  - DOMAIN-SUFFIX,istyboe.top
   # 匹配关键字
   # - DOMAIN-KEYWORD,netflix
   # - DOMAIN-KEYWORD,spotify
@@ -24,6 +26,8 @@ payload:
   # 全匹配
   #- DOMAIN,my.personal.site.com
   - DOMAIN,emby.dnscf.dpdns.org
+  - DOMAIN,114514.fuckme.pushgoodcloud.com
+  - DOMAIN,genshen.mihoyo.bbroot.com
   
   # IP 段
   #- IP-CIDR,91.108.4.0/22,no-resolve
