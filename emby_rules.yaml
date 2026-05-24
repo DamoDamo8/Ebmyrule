@@ -19,6 +19,7 @@ payload:
   - DOMAIN-SUFFIX,emby.dnscf.dpdns.org
   - DOMAIN-SUFFIX,23333334.xyz
   - DOMAIN-SUFFIX,istyboe.top
+  - DOMAIN-SUFFIX,inemby.us.ci
   # 匹配关键字
   # - DOMAIN-KEYWORD,netflix
   # - DOMAIN-KEYWORD,spotify
