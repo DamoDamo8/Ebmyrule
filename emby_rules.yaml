@@ -18,6 +18,7 @@ payload:
   - DOMAIN-SUFFIX,istyboe.top
   - DOMAIN-SUFFIX,emby.dnscf.dpdns.org
   - DOMAIN-SUFFIX,23333334.xyz
+  - DOMAIN-SUFFIX,306699.xyz
   - DOMAIN-SUFFIX,istyboe.top
   - DOMAIN-SUFFIX,inemby.us.ci
   - IP-CIDR,193.123.73.89/22,no-resolve
