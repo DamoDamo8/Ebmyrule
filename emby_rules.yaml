@@ -22,6 +22,7 @@ payload:
   - DOMAIN-SUFFIX,istyboe.top
   - DOMAIN-SUFFIX,inemby.us.ci
   - IP-CIDR,193.123.73.89/22,no-resolve
+  - IP-CIDR,38.147.107.204/22,no-resolve
   # 匹配关键字
   # - DOMAIN-KEYWORD,netflix
   # - DOMAIN-KEYWORD,spotify
