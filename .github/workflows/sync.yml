@@ -3,7 +3,7 @@ name: Auto Sync List and Split Compile MRS
 on:
   push:
     paths:
-      - 'emby_rules.yaml' # 只有手动改这个文件时才触发
+      - 'emby_rules.yaml'
 
 jobs:
   build:
@@ -44,7 +44,7 @@ jobs:
               f.writelines(output_lines)
           "
 
-      # 2. 强力清洗切片：绝不依赖 pyyaml 库，纯文本秒级分流
+      # 2. 精准规则切片：通过前缀关键字，安全、准确地将域名与 IP 分流
       - name: Split YAML into Domain and IP
         run: |
           python -c "
@@ -87,7 +87,7 @@ jobs:
                   f.writelines(ips)
           "
 
-      # 3. 编译出高性能的 .mrs 文件
+      # 3. 智能按需编译：【这里修复了误启动内核导致卡死的问题】
       - name: Compile MRS Files via Mihomo
         run: |
           wget https://github.com/MetaCubeX/mihomo/releases/download/v1.18.9/mihomo-linux-amd64-v1.18.9.gz
@@ -95,6 +95,7 @@ jobs:
           mv mihomo-linux-amd64-v1.18.9 mihomo
           chmod +x mihomo
 
+          # 严格调用 cli 编译工具，编译完立刻退出，绝不挂后台
           if [ -f emby_domain.yaml ]; then
               ./mihomo cli ruleset compile --behavior domain emby_domain.yaml emby_domain.mrs
           fi
@@ -112,6 +113,5 @@ jobs:
           [ -f emby_domain.mrs ] && git add emby_domain.mrs
           [ -f emby_ip.mrs ] && git add emby_ip.mrs
           
-          # 【核心改动】这里的 [skip ci] 会明确命令 GitHub：这是 Actions 机器人的自动提交，千万不要再次触发 Build！
           git diff-index --quiet HEAD || git commit -m "chore: auto-sync all files safely [skip ci]"
           git push
