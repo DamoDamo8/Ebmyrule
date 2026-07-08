@@ -24,7 +24,7 @@ payload:
   - DOMAIN-SUFFIX,inemby.us.ci
   - DOMAIN-SUFFIX,emby.taotu.ink #乐蛙
   - DOMAIN-SUFFIX,eb.atrct.cn #乐蛙
-  - DOMAIN-SUFFIX,ccdv.cc.cdcc #ebmydada
+  - DOMAIN-SUFFIX,ccdv.cc.cd #ebmydada
   - DOMAIN-SUFFIX,chi.us.ci #ebmydada
   - DOMAIN-SUFFIX,video.emos.best
   - IP-CIDR,193.123.73.89/22,no-resolve
