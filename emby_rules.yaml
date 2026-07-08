@@ -22,10 +22,10 @@ payload:
   - DOMAIN-SUFFIX,306699.xyz
   - DOMAIN-SUFFIX,istyboe.top
   - DOMAIN-SUFFIX,inemby.us.ci
-  - DOMAIN-SUFFIX,emby.taotu.ink #乐蛙
-  - DOMAIN-SUFFIX,eb.atrct.cn #乐蛙
-  - DOMAIN-SUFFIX,ccdv.cc.cd #ebmydada
-  - DOMAIN-SUFFIX,chi.us.ci #ebmydada
+  - DOMAIN-SUFFIX,emby.taotu.ink
+  - DOMAIN-SUFFIX,eb.atrct.cn
+  - DOMAIN-SUFFIX,ccdv.cc.cd
+  - DOMAIN-SUFFIX,chi.us.ci
   - DOMAIN-SUFFIX,video.emos.best
   - IP-CIDR,193.123.73.89/22,no-resolve
   - IP-CIDR,38.147.107.204/22,no-resolve
