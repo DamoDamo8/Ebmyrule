@@ -17,10 +17,7 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install PyYAML
-        run: pip install pyyaml
-
-      # 1. 继续完美同步你原本的 emby_rules.list 文件（保留所有注释、去横杠）
+      # 1. 逐行纯文本处理：继续同步你的 emby_rules.list 文件
       - name: Convert YAML to List (Keep Format)
         run: |
           python -c "
@@ -47,39 +44,44 @@ jobs:
               f.writelines(output_lines)
           "
 
-      # 2. 智能拆分：完美支持 IP-CIDR6 和 IP-ASN 并归类
-      - name: Split YAML into Domain and IP
+      # 2. 文本流清洗：完全不通过 yaml 库解析，直接通过纯文本提取有效域名和 IP，防止因你加了 # 导致解析报错
+      - name: Split YAML into Domain and IP (No-Error Version)
         run: |
           python -c "
-          import yaml
+          import re
 
           with open('emby_rules.yaml', 'r', encoding='utf-8') as f:
-              data = yaml.safe_load(f)
+              lines = f.readlines()
 
-          payload = data.get('payload', [])
-          
           domains = []
           ips = []
 
-          for item in payload:
-              if not item or not isinstance(item, str):
-                  continue
-              
-              # 统一转成大写进行安全判断，防止大小写不一致导致失效
-              upper_item = item.upper()
-              
-              # 判断是否属于 IP / 路由网络类规则 (包含传统IP、IPv6、ASN、GeoIP等)
-              if any(upper_item.startswith(p) for p in ['IP-CIDR', 'IP-CIDR6', 'IP-ASN', 'GEOIP']):
-                  ips.append(item)
-              # 判断是否属于域名类规则 (包含 DOMAIN, DOMAIN-SUFFIX, DOMAIN-KEYWORD, GEOSITE等)
-              elif any(upper_item.startswith(p) for p in ['DOMAIN', 'GEOSITE']):
-                  domains.append(item)
+          for line in lines:
+              # 匹配形如 - DOMAIN... 的行
+              match = re.match(r'^(\s*)-\s+(.*)$', line)
+              if match:
+                  indent, content = match.groups()
+                  # 如果该条规则被 # 注释掉了（如 - # DOMAIN），直接忽略它，不放入编译
+                  if content.startswith('#'):
+                      continue
+                  
+                  clean_rule = content.strip()
+                  upper_rule = clean_rule.upper()
+                  
+                  # 智能分类
+                  if any(upper_rule.startswith(p) for p in ['IP-CIDR', 'IP-CIDR6', 'IP-ASN', 'GEOIP']):
+                      ips.append(f'  - {clean_rule}\n')
+                  elif any(upper_rule.startswith(p) for p in ['DOMAIN', 'GEOSITE']):
+                      domains.append(f'  - {clean_rule}\n')
 
+          # 重新组装生成临时的纯净 yaml 用来编译
           with open('emby_domain.yaml', 'w', encoding='utf-8') as f:
-              yaml.dump({'payload': domains}, f, allow_unicode=True, default_flow_style=False)
+              f.write('payload:\n')
+              f.writelines(domains)
 
           with open('emby_ip.yaml', 'w', encoding='utf-8') as f:
-              yaml.dump({'payload': ips}, f, allow_unicode=True, default_flow_style=False)
+              f.write('payload:\n')
+              f.writelines(ips)
           "
 
       # 3. 极致编译：下载 Mihomo 编译出高性能的 .mrs 文件
@@ -100,5 +102,5 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
           git add emby_rules.list emby_domain.mrs emby_ip.mrs
-          git diff-index --quiet HEAD || git commit -m "chore: auto-sync list and split compile mrs with asn support [skip ci]"
+          git diff-index --quiet HEAD || git commit -m "chore: auto-sync all files safely [skip ci]"
           git push
