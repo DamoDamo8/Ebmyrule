@@ -1,3 +1,4 @@
+  # 匹配后缀
 DOMAIN-SUFFIX,viclub.top
 DOMAIN-SUFFIX,vfing.de
 DOMAIN-SUFFIX,sakim.org
@@ -25,6 +26,8 @@ DOMAIN-SUFFIX,eb.atrct.cn
 DOMAIN-SUFFIX,ccdv.cc.cd
 DOMAIN-SUFFIX,chi.us.ci
 DOMAIN-SUFFIX,video.emos.best
+DOMAIN-SUFFIX,video.emos.bestbuy
+  #这是一条测试
 IP-CIDR,193.123.73.89/22,no-resolve
 IP-CIDR,38.147.107.204/22,no-resolve
   # 匹配关键字
