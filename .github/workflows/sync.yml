@@ -9,20 +9,16 @@ on:
 permissions:
   contents: write
 
-
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-
       # 1. 拉取仓库
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
 
       # 2. Python 环境
       - name: Set up Python
@@ -30,259 +26,168 @@ jobs:
         with:
           python-version: '3.x'
 
-
-      # 3. YAML 转 LIST
-      - name: Convert YAML to List
+      # 3. 解析规则生成 LIST / DOMAIN / IP
+      - name: Process Rules
         run: |
           python <<'PY'
-          import re
+          import os
 
-          with open("emby_rules.yaml", "r", encoding="utf-8") as f:
-              lines = f.readlines()
+          # 主动清理旧中间文件，防止残留
+          for f in ["emby_rules.list", "emby_domain.yaml", "emby_ip.txt"]:
+              if os.path.exists(f):
+                  os.remove(f)
 
-          out = []
-
-          for line in lines:
-
-              if line.strip() == "payload:":
-                  continue
-
-              m = re.match(r'^\s*-\s+(.*)$', line)
-
-              if m:
-                  content = m.group(1).strip()
-
-                  if content:
-                      out.append(content + "\n")
-              else:
-                  out.append(line)
-
-
-          with open("emby_rules.list", "w", encoding="utf-8") as f:
-              f.writelines(out)
-
-
-          print("emby_rules.list generated")
-
-          PY
-
-
-
-      # 4. 分离 DOMAIN / IP
-      - name: Split Rules
-        run: |
-          python <<'PY'
-          import re
-
+          rules = []
           domains = []
           ips = []
 
-
           with open("emby_rules.yaml", "r", encoding="utf-8") as f:
               lines = f.readlines()
 
-
           for line in lines:
+              line = line.strip()
 
-              m = re.match(r'^\s*-\s+(.*)$', line)
-
-              if not m:
+              if not line or line.startswith("payload:") or line.startswith("#"):
                   continue
 
-
-              rule = m.group(1).strip()
-
-
-              if rule.startswith("#"):
+              if not line.startswith("-"):
                   continue
 
-
-              # 删除尾部注释
-              rule = re.sub(r'\s+#.*$', '', rule).strip()
-
+              rule = line[1:].strip()
 
               if not rule:
                   continue
 
+              # 删除尾部注释
+              rule = rule.split("#")[0].strip()
 
-              parts = [
-                  x.strip()
-                  for x in rule.split(",")
-              ]
+              if not rule:
+                  continue
 
+              rules.append(rule + "\n")
+
+              parts = [x.strip() for x in rule.split(",")]
+
+              if len(parts) < 2:
+                  continue
 
               kind = parts[0].upper()
 
-
-
               # IP-CIDR
               if kind == "IP-CIDR":
+                  ips.append(parts[1] + "\n")
 
-                  if len(parts) >= 2:
-                      ips.append(parts[1] + "\n")
+              # DOMAIN 类
+              elif kind in ("DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD"):
+                  domains.append(f"  - {kind},{parts[1]}\n")
 
+          # LIST
+          with open("emby_rules.list", "w", encoding="utf-8") as f:
+              f.writelines(rules)
 
-
-              # DOMAIN / DOMAIN-SUFFIX
-              elif kind in ("DOMAIN", "DOMAIN-SUFFIX"):
-
-                  if len(parts) >= 2:
-
-                      domains.append(
-                          f"  - {kind},{parts[1]}\n"
-                      )
-
-
-
+          # DOMAIN YAML
           if domains:
-
-              with open(
-                  "emby_domain.yaml",
-                  "w",
-                  encoding="utf-8"
-              ) as f:
-
+              with open("emby_domain.yaml", "w", encoding="utf-8") as f:
                   f.write("payload:\n")
                   f.writelines(domains)
 
-
-
+          # IP TXT
           if ips:
-
-              with open(
-                  "emby_ip.txt",
-                  "w",
-                  encoding="utf-8"
-              ) as f:
-
+              with open("emby_ip.txt", "w", encoding="utf-8") as f:
                   f.writelines(ips)
 
-
-
-          print("domains:", len(domains))
-          print("ips:", len(ips))
-
+          print(f"rules:{len(rules)} domain:{len(domains)} ip:{len(ips)}")
           PY
 
-
-
-
-      # 5. Mihomo 编译 MRS
+      # 4. 动态获取 Mihomo 并编译 MRS
       - name: Compile MRS Files
         run: |
-
           set -e
 
+          rm -f *.mrs mihomo mihomo.gz
 
-          VERSION=v1.19.19
+          echo "Getting latest Mihomo..."
 
+          VERSION=$(curl -fsSL \
+            https://api.github.com/repos/MetaCubeX/mihomo/releases/latest \
+            | grep '"tag_name":' \
+            | sed -E 's/.*"([^"]+)".*/\1/' \
+            || true)
 
-          # 清理旧生成文件
-          rm -f \
-          emby_domain.mrs \
-          emby_ip.mrs \
-          emby_domain.yaml \
-          emby_ip.txt
+          if [ -z "$VERSION" ]; then
+              VERSION="v1.19.19"
+              echo "Fallback Mihomo: $VERSION"
+          else
+              echo "Latest Mihomo: $VERSION"
+          fi
 
+          URL="https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-amd64-${VERSION}.gz"
 
+          echo "Download: $URL"
+          # 增加超时与重试，确保网络恶劣时也能生存
+          wget -q --timeout=15 --tries=3 "$URL" -O mihomo.gz
 
-          wget -q \
-          https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-amd64-${VERSION}.gz
+          if [ ! -s mihomo.gz ]; then
+              echo "Mihomo download failed"
+              exit 1
+          fi
 
-
-
-          # 下载检测
-          test -s mihomo-linux-amd64-${VERSION}.gz
-
-
-
-          gunzip mihomo-linux-amd64-${VERSION}.gz
-
-
-
-          mv mihomo-linux-amd64-${VERSION} mihomo
-
-
-
+          gunzip -c mihomo.gz > mihomo
           chmod +x mihomo
 
-
-
-          echo "Mihomo Version:"
           ./mihomo -v
 
-
-
-
-          # DOMAIN MRS
-
+          # DOMAIN MRS (使用 classical 模式编译，完美识别前缀)
           if [ -s emby_domain.yaml ]; then
-
-              echo "Compile domain mrs"
-
-
+              echo "Compile DOMAIN MRS"
               ./mihomo convert-ruleset \
-                domain \
+                classical \
                 yaml \
                 emby_domain.yaml \
                 emby_domain.mrs
-
           fi
 
-
-
-
           # IP MRS
-
           if [ -s emby_ip.txt ]; then
-
-              echo "Compile ip mrs"
-
-
+              echo "Compile IP MRS"
               ./mihomo convert-ruleset \
                 ipcidr \
                 text \
                 emby_ip.txt \
                 emby_ip.mrs
-
           fi
 
+          # 删除核心，避免提交大文件
+          rm -f mihomo mihomo.gz
 
-
-
-          echo "MRS compile completed"
-
-
+          echo "===== MRS RESULT ====="
           ls -lh *.mrs || true
+          du -sh *.mrs 2>/dev/null || true
 
-
-
-
-
-      # 6. 提交生成文件
+      # 5. 智能提交与清理同步
       - name: Commit Changes
         run: |
-
           git config --global user.name "github-actions[bot]"
-
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+          # 使用单行单空格分隔定义，彻底杜绝换行空字串导致的 pathspec 报错
+          TARGET_FILES="emby_rules.list emby_domain.yaml emby_ip.txt emby_domain.mrs emby_ip.mrs"
 
+          for file in $TARGET_FILES
+          do
+              if [ -f "$file" ]; then
+                  git add "$file"
+              else
+                  if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
+                      git rm --cached "$file"
+                  fi
+              fi
+          done
 
-          git add .
-
-
-
-          if git diff --cached --quiet; then
-
+          # 精准差异对比，避免环境无关变量触发空 Commit
+          if git diff --cached --quiet -- $TARGET_FILES; then
               echo "No changes"
-
           else
-
-              git commit \
-              -m "chore: auto compile emby rules [skip ci]"
-
-
+              git commit -m "chore: auto compile emby rules [skip ci]"
               git push
-
           fi
