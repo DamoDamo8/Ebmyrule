@@ -3,7 +3,7 @@ name: Auto Sync List and Split Compile MRS
 on:
   push:
     paths:
-      - 'emby_rules.yaml' # 当你修改这个文件时触发
+      - 'emby_rules.yaml' # 只有手动改这个文件时才触发
 
 jobs:
   build:
@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: '3.x'
 
-      # 1. 逐行纯文本处理：继续同步你的 emby_rules.list 文件
+      # 1. 纯文本同步原原本本的 emby_rules.list
       - name: Convert YAML to List (Keep Format)
         run: |
           python -c "
@@ -44,8 +44,8 @@ jobs:
               f.writelines(output_lines)
           "
 
-      # 2. 文本流清洗：完全不通过 yaml 库解析，直接通过纯文本提取有效域名和 IP，防止因你加了 # 导致解析报错
-      - name: Split YAML into Domain and IP (No-Error Version)
+      # 2. 强力清洗切片：绝不依赖 pyyaml 库，纯文本秒级分流
+      - name: Split YAML into Domain and IP
         run: |
           python -c "
           import re
@@ -57,34 +57,37 @@ jobs:
           ips = []
 
           for line in lines:
-              # 匹配形如 - DOMAIN... 的行
               match = re.match(r'^(\s*)-\s+(.*)$', line)
               if match:
                   indent, content = match.groups()
-                  # 如果该条规则被 # 注释掉了（如 - # DOMAIN），直接忽略它，不放入编译
-                  if content.startswith('#'):
+                  if content.strip().startswith('#'):
+                      continue
+                  clean_rule = re.sub(r'\s*#.*$', '', content).strip()
+                  if not clean_rule:
+                      continue
+                  parts = [p.strip() for p in clean_rule.split(',')]
+                  if not parts:
                       continue
                   
-                  clean_rule = content.strip()
-                  upper_rule = clean_rule.upper()
+                  rule_type = parts[0].upper()
+                  standard_rule = ','.join(parts)
                   
-                  # 智能分类
-                  if any(upper_rule.startswith(p) for p in ['IP-CIDR', 'IP-CIDR6', 'IP-ASN', 'GEOIP']):
-                      ips.append(f'  - {clean_rule}\n')
-                  elif any(upper_rule.startswith(p) for p in ['DOMAIN', 'GEOSITE']):
-                      domains.append(f'  - {clean_rule}\n')
+                  if any(rule_type.startswith(p) for p in ['IP-CIDR', 'IP-ASN', 'GEOIP']):
+                      ips.append(f'  - {standard_rule}\n')
+                  elif any(rule_type.startswith(p) for p in ['DOMAIN', 'GEOSITE']):
+                      domains.append(f'  - {standard_rule}\n')
 
-          # 重新组装生成临时的纯净 yaml 用来编译
-          with open('emby_domain.yaml', 'w', encoding='utf-8') as f:
-              f.write('payload:\n')
-              f.writelines(domains)
-
-          with open('emby_ip.yaml', 'w', encoding='utf-8') as f:
-              f.write('payload:\n')
-              f.writelines(ips)
+          if domains:
+              with open('emby_domain.yaml', 'w', encoding='utf-8') as f:
+                  f.write('payload:\n')
+                  f.writelines(domains)
+          if ips:
+              with open('emby_ip.yaml', 'w', encoding='utf-8') as f:
+                  f.write('payload:\n')
+                  f.writelines(ips)
           "
 
-      # 3. 极致编译：下载 Mihomo 编译出高性能的 .mrs 文件
+      # 3. 编译出高性能的 .mrs 文件
       - name: Compile MRS Files via Mihomo
         run: |
           wget https://github.com/MetaCubeX/mihomo/releases/download/v1.18.9/mihomo-linux-amd64-v1.18.9.gz
@@ -92,15 +95,23 @@ jobs:
           mv mihomo-linux-amd64-v1.18.9 mihomo
           chmod +x mihomo
 
-          ./mihomo cli ruleset compile --behavior domain emby_domain.yaml emby_domain.mrs
-          ./mihomo cli ruleset compile --behavior ipcidr emby_ip.yaml emby_ip.mrs
+          if [ -f emby_domain.yaml ]; then
+              ./mihomo cli ruleset compile --behavior domain emby_domain.yaml emby_domain.mrs
+          fi
+          if [ -f emby_ip.yaml ]; then
+              ./mihomo cli ruleset compile --behavior ipcidr emby_ip.yaml emby_ip.mrs
+          fi
 
-      # 4. 统一提交
+      # 4. 终极防死循环安全提交
       - name: Commit and Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
-          git add emby_rules.list emby_domain.mrs emby_ip.mrs
+          git add emby_rules.list
+          [ -f emby_domain.mrs ] && git add emby_domain.mrs
+          [ -f emby_ip.mrs ] && git add emby_ip.mrs
+          
+          # 【核心改动】这里的 [skip ci] 会明确命令 GitHub：这是 Actions 机器人的自动提交，千万不要再次触发 Build！
           git diff-index --quiet HEAD || git commit -m "chore: auto-sync all files safely [skip ci]"
           git push
