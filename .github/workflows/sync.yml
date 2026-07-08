@@ -1,193 +1,61 @@
-name: Auto Sync Emby Rules and Compile MRS
+name: Auto Sync YAML to List
 
 on:
   push:
     paths:
-      - 'emby_rules.yaml'
-      - '.github/workflows/*.yml'
-
-permissions:
-  contents: write
+      - 'emby_rules.yaml' # 只有当你修改这个文件时，才会触发同步
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. 拉取仓库
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      # 2. Python 环境
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
-      # 3. 解析规则生成 LIST / DOMAIN / IP
-      - name: Process Rules
+      - name: Convert YAML to List (Support DOMAIN & IP-CIDR)
         run: |
-          python <<'PY'
-          import os
+          python -c "
+          import re
 
-          # 主动清理旧中间文件，防止残留
-          for f in ["emby_rules.list", "emby_domain.yaml", "emby_ip.txt"]:
-              if os.path.exists(f):
-                  os.remove(f)
-
-          rules = []
-          domains = []
-          ips = []
-
-          with open("emby_rules.yaml", "r", encoding="utf-8") as f:
+          with open('emby_rules.yaml', 'r', encoding='utf-8') as f:
               lines = f.readlines()
 
+          output_lines = []
           for line in lines:
-              line = line.strip()
-
-              if not line or line.startswith("payload:") or line.startswith("#"):
+              # 1. 过滤掉最外层的 payload: 这一行
+              if line.strip().startswith('payload:'):
                   continue
+              
+              # 2. 匹配以 '-' 开头的有效规则（如 - DOMAIN... 或 - IP-CIDR...）
+              match = re.match(r'^(\s*)-\s+(.*)$', line)
+              if match:
+                  indent, content = match.groups()
+                  # 如果 - 后面紧跟的是 # 号（形如 #- DOMAIN... 这种被注释掉的规则）
+                  if content.startswith('#'):
+                      output_lines.append(line) # 原封不动保留
+                  else:
+                      # 正常的规则，去掉前面的 '- ' 符号，直接将后面整段内容写入
+                      output_lines.append(f'{content}\n')
+              else:
+                  # 3. 正常的纯注释行、空白行，原封不动保留
+                  output_lines.append(line)
 
-              if not line.startswith("-"):
-                  continue
+          # 将最终处理好的整洁内容写入 list 文件
+          with open('emby_rules.list', 'w', encoding='utf-8') as f:
+              f.writelines(output_lines)
+          "
 
-              rule = line[1:].strip()
-
-              if not rule:
-                  continue
-
-              # 删除尾部注释
-              rule = rule.split("#")[0].strip()
-
-              if not rule:
-                  continue
-
-              rules.append(rule + "\n")
-
-              parts = [x.strip() for x in rule.split(",")]
-
-              if len(parts) < 2:
-                  continue
-
-              kind = parts[0].upper()
-
-              # IP-CIDR
-              if kind == "IP-CIDR":
-                  ips.append(parts[1] + "\n")
-
-              # DOMAIN 类
-              elif kind in ("DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD"):
-                  domains.append(f"  - {kind},{parts[1]}\n")
-
-          # LIST
-          with open("emby_rules.list", "w", encoding="utf-8") as f:
-              f.writelines(rules)
-
-          # DOMAIN YAML
-          if domains:
-              with open("emby_domain.yaml", "w", encoding="utf-8") as f:
-                  f.write("payload:\n")
-                  f.writelines(domains)
-
-          # IP TXT
-          if ips:
-              with open("emby_ip.txt", "w", encoding="utf-8") as f:
-                  f.writelines(ips)
-
-          print(f"rules:{len(rules)} domain:{len(domains)} ip:{len(ips)}")
-          PY
-
-      # 4. 动态获取 Mihomo 并编译 MRS
-      - name: Compile MRS Files
-        run: |
-          set -e
-
-          rm -f *.mrs mihomo mihomo.gz
-
-          echo "Getting latest Mihomo..."
-
-          VERSION=$(curl -fsSL \
-            https://api.github.com/repos/MetaCubeX/mihomo/releases/latest \
-            | grep '"tag_name":' \
-            | sed -E 's/.*"([^"]+)".*/\1/' \
-            || true)
-
-          if [ -z "$VERSION" ]; then
-              VERSION="v1.19.19"
-              echo "Fallback Mihomo: $VERSION"
-          else
-              echo "Latest Mihomo: $VERSION"
-          fi
-
-          URL="https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-amd64-${VERSION}.gz"
-
-          echo "Download: $URL"
-          # 增加超时与重试，确保网络恶劣时也能生存
-          wget -q --timeout=15 --tries=3 "$URL" -O mihomo.gz
-
-          if [ ! -s mihomo.gz ]; then
-              echo "Mihomo download failed"
-              exit 1
-          fi
-
-          gunzip -c mihomo.gz > mihomo
-          chmod +x mihomo
-
-          ./mihomo -v
-
-          # DOMAIN MRS (使用 classical 模式编译，完美识别前缀)
-          if [ -s emby_domain.yaml ]; then
-              echo "Compile DOMAIN MRS"
-              ./mihomo convert-ruleset \
-                classical \
-                yaml \
-                emby_domain.yaml \
-                emby_domain.mrs
-          fi
-
-          # IP MRS
-          if [ -s emby_ip.txt ]; then
-              echo "Compile IP MRS"
-              ./mihomo convert-ruleset \
-                ipcidr \
-                text \
-                emby_ip.txt \
-                emby_ip.mrs
-          fi
-
-          # 删除核心，避免提交大文件
-          rm -f mihomo mihomo.gz
-
-          echo "===== MRS RESULT ====="
-          ls -lh *.mrs || true
-          du -sh *.mrs 2>/dev/null || true
-
-      # 5. 智能提交与清理同步
-      - name: Commit Changes
+      - name: Commit and Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # 使用单行单空格分隔定义，彻底杜绝换行空字串导致的 pathspec 报错
-          TARGET_FILES="emby_rules.list emby_domain.yaml emby_ip.txt emby_domain.mrs emby_ip.mrs"
-
-          for file in $TARGET_FILES
-          do
-              if [ -f "$file" ]; then
-                  git add "$file"
-              else
-                  if git ls-files --error-unmatch "$file" >/dev/null 2>&1; then
-                      git rm --cached "$file"
-                  fi
-              fi
-          done
-
-          # 精准差异对比，避免环境无关变量触发空 Commit
-          if git diff --cached --quiet -- $TARGET_FILES; then
-              echo "No changes"
-          else
-              git commit -m "chore: auto compile emby rules [skip ci]"
-              git push
-          fi
+          
+          git add emby_rules.list
+          # 检查是否有内容变动，有变动才提交，防止死循环
+          git diff-index --quiet HEAD || git commit -m "chore: auto-sync emby_rules.list [skip ci]"
+          git push
