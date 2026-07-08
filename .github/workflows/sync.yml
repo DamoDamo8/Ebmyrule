@@ -3,59 +3,107 @@ name: Auto Sync YAML to List
 on:
   push:
     paths:
-      - 'emby_rules.yaml' # 只有当你修改这个文件时，才会触发同步
+      - 'emby_rules.yaml'
+      - '.github/workflows/*.yml'
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
+
+      # 1. 拉取仓库
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
+
+      # 2. Python 环境
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
-      - name: Convert YAML to List (Support DOMAIN & IP-CIDR)
+
+      # 3. YAML 转 LIST
+      - name: Convert YAML to List
         run: |
-          python -c "
+          python <<'PY'
           import re
 
-          with open('emby_rules.yaml', 'r', encoding='utf-8') as f:
+          with open("emby_rules.yaml", "r", encoding="utf-8") as f:
               lines = f.readlines()
 
+
           output_lines = []
+
+
           for line in lines:
-              # 1. 过滤掉最外层的 payload: 这一行
-              if line.strip().startswith('payload:'):
+
+              # 删除 payload:
+              if line.strip().startswith("payload:"):
                   continue
-              
-              # 2. 匹配以 '-' 开头的有效规则（如 - DOMAIN... 或 - IP-CIDR...）
+
+
+              # 匹配 YAML 列表规则
               match = re.match(r'^(\s*)-\s+(.*)$', line)
+
+
               if match:
+
                   indent, content = match.groups()
-                  # 如果 - 后面紧跟的是 # 号（形如 #- DOMAIN... 这种被注释掉的规则）
-                  if content.startswith('#'):
-                      output_lines.append(line) # 原封不动保留
+
+
+                  # 保留被注释的规则
+                  if content.startswith("#"):
+                      output_lines.append(line)
+
                   else:
-                      # 正常的规则，去掉前面的 '- ' 符号，直接将后面整段内容写入
-                      output_lines.append(f'{content}\n')
+                      # 去掉 "- "，保持规则原文
+                      output_lines.append(
+                          content.rstrip("\r\n") + "\n"
+                      )
+
+
               else:
-                  # 3. 正常的纯注释行、空白行，原封不动保留
+
+                  # 保留普通注释、空行
                   output_lines.append(line)
 
-          # 将最终处理好的整洁内容写入 list 文件
-          with open('emby_rules.list', 'w', encoding='utf-8') as f:
-              f.writelines(output_lines)
-          "
 
+
+          with open(
+              "emby_rules.list",
+              "w",
+              encoding="utf-8",
+              newline="\n"
+          ) as f:
+              f.writelines(output_lines)
+
+
+          print("emby_rules.list generated")
+          PY
+
+
+
+      # 4. 提交生成文件
       - name: Commit and Push Changes
         run: |
+
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
+
+
           git add emby_rules.list
-          # 检查是否有内容变动，有变动才提交，防止死循环
-          git diff-index --quiet HEAD || git commit -m "chore: auto-sync emby_rules.list [skip ci]"
-          git push
+
+
+          if git diff --cached --quiet; then
+              echo "No changes"
+          else
+              git commit -m "chore: auto-sync emby_rules.list [skip ci]"
+              git push
+          fi
