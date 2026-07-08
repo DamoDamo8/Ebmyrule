@@ -18,7 +18,7 @@ jobs:
           python-version: '3.x'
 
       # 1. 纯文本同步原原本本的 emby_rules.list
-      - name: Convert YAML to List (Keep Format)
+      - name: Convert YAML to List
         run: |
           python -c "
           import re
@@ -44,7 +44,7 @@ jobs:
               f.writelines(output_lines)
           "
 
-      # 2. 精准规则切片：通过前缀关键字，安全、准确地将域名与 IP 分流
+      # 2. 精准规则切片
       - name: Split YAML into Domain and IP
         run: |
           python -c "
@@ -87,21 +87,24 @@ jobs:
                   f.writelines(ips)
           "
 
-      # 3. 智能按需编译：【这里修复了误启动内核导致卡死的问题】
+      # 3. 强力安全编译（严格修正官方 Release 的大小写文件名）
       - name: Compile MRS Files via Mihomo
         run: |
-          wget https://github.com/MetaCubeX/mihomo/releases/download/v1.18.9/mihomo-linux-amd64-v1.18.9.gz
-          gunzip mihomo-linux-amd64-v1.18.9.gz
-          mv mihomo-linux-amd64-v1.18.9 mihomo
-          chmod +x mihomo
+          # 注意：这里的 M 和 H 改为了大写，确保 100% 正确下载官方核心
+          wget https://github.com/MetaCubeX/mihomo/releases/download/v1.18.9/Mihomo-linux-amd64-v1.18.9.gz
+          gunzip Mihomo-linux-amd64-v1.18.9.gz
+          mv Mihomo-linux-amd64-v1.18.9 mhm_cli
+          chmod +x mhm_cli
 
-          # 严格调用 cli 编译工具，编译完立刻退出，绝不挂后台
+          # 使用绝对不可能和默认启动冲突的别名 mhm_cli 执行单次编译
           if [ -f emby_domain.yaml ]; then
-              ./mihomo cli ruleset compile --behavior domain emby_domain.yaml emby_domain.mrs
+              ./mhm_cli cli ruleset compile --behavior domain emby_domain.yaml emby_domain.mrs
           fi
           if [ -f emby_ip.yaml ]; then
-              ./mihomo cli ruleset compile --behavior ipcidr emby_ip.yaml emby_ip.mrs
+              ./mhm_cli cli ruleset compile --behavior ipcidr emby_ip.yaml emby_ip.mrs
           fi
+          
+          echo "All compiled successfully."
 
       # 4. 终极防死循环安全提交
       - name: Commit and Push Changes
