@@ -41,6 +41,9 @@ payload:
   - DOMAIN-SUFFIX,emby.taotu.ink
   - DOMAIN-SUFFIX,eb.atrct.cn
   - DOMAIN-SUFFIX,emby.di0.uk
+  - DOMAIN-SUFFIX,link00.okemby.org 
+  - DOMAIN-SUFFIX,link01.okemby.org 
+  - DOMAIN-SUFFIX,bb.emby.edu.kg
   - IP-CIDR,193.123.73.89/22,no-resolve
   - IP-CIDR,38.147.107.204/22,no-resolve
   
