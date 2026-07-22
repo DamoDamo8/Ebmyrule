@@ -57,6 +57,7 @@ payload:
   - DOMAIN-SUFFIX,auto.liuerao.dpdns.org
   - DOMAIN-SUFFIX,fd.dirige.de5.net
   - DOMAIN-SUFFIX,auto.dolby.dpdns.org
+  - DOMAIN-SUFFIX,goemby.entertang.work
   - IP-CIDR,193.123.73.89/22,no-resolve
   - IP-CIDR,38.147.107.204/22,no-resolve
   
