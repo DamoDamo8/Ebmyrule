@@ -64,6 +64,7 @@ DOMAIN-SUFFIX,emby.yusen.us.ci
 DOMAIN-SUFFIX,embya.yusen.cyou
 DOMAIN-SUFFIX,emby.yusen.cc.cd
 DOMAIN-SUFFIX,emby.teawaya.com
+DOMAIN-SUFFIX,emby.snowstorm.cc.cd
 IP-CIDR,193.123.73.89/32,no-resolve
 IP-CIDR,162.159.20.184/32,no-resolve
 IP-CIDR,38.147.107.204/32,no-resolve
