@@ -70,6 +70,9 @@ payload:
   - DOMAIN-SUFFIX,cf.sfcj.org
   # cola
   - DOMAIN-SUFFIX,emby.misaka.si
+  - DOMAIN-SUFFIX,ct.speedtest.sarl
+  - DOMAIN-SUFFIX,cu.speedtest.sarl
+  - DOMAIN-SUFFIX,cm.speedtest.sarl
   # 佬友记
   - DOMAIN-SUFFIX,emby.605305.xyz
   - DOMAIN-SUFFIX,ofo.033388.xyz
