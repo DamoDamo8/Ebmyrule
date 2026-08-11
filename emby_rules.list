@@ -78,6 +78,11 @@ DOMAIN-SUFFIX,ofo.033388.xyz
 DOMAIN-SUFFIX,lyj.ysz.dpdns.org
 DOMAIN-SUFFIX,cdn.605305.xyz
 DOMAIN-SUFFIX,reverse.605305.xyz
+  # 亦心反代
+DOMAIN-SUFFIX,yx.emby-ct.ccwu.cc
+DOMAIN-SUFFIX,yx.emby-cm.ccwu.c
+DOMAIN-SUFFIX,yxv6.emby-cm.ccwu.cc
+DOMAIN-SUFFIX,yx.emby-cu.ccwu.c
   
 IP-CIDR,193.123.73.89/32,no-resolve
 IP-CIDR,162.159.20.184/32,no-resolve
