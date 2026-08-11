@@ -83,6 +83,8 @@ DOMAIN-SUFFIX,yx.emby-ct.ccwu.cc
 DOMAIN-SUFFIX,yx.emby-cm.ccwu.c
 DOMAIN-SUFFIX,yxv6.emby-cm.ccwu.cc
 DOMAIN-SUFFIX,yx.emby-cu.ccwu.c
+  # 百花剧院
+DOMAIN-SUFFIX,emby.ibukifuko.tech
   
 IP-CIDR,193.123.73.89/32,no-resolve
 IP-CIDR,162.159.20.184/32,no-resolve
