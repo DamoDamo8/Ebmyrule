@@ -1,5 +1,8 @@
 payload:
   # 匹配后缀
+  #   我的反代
+  - DOMAIN-SUFFIX,emby.alex.kdns.fr
+  
   - DOMAIN-SUFFIX,viclub.top
   - DOMAIN-SUFFIX,vfing.de
   - DOMAIN-SUFFIX,sakim.org
