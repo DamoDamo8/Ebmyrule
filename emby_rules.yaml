@@ -95,8 +95,10 @@ payload:
   - DOMAIN-SUFFIX,yx.emby-cu.ccwu.c
   # 百花剧院
   - DOMAIN-SUFFIX,emby.ibukifuko.tech
-  # xyz
-  - DOMAIN-SUFFIX,gf.emby.yun
+  # 大厨
+  - DOMAIN-SUFFIX,e.zhuhule.com
+
+  
   - IP-CIDR,193.123.73.89/32,no-resolve
   - IP-CIDR,162.159.20.184/32,no-resolve
   - IP-CIDR,38.147.107.204/32,no-resolve
