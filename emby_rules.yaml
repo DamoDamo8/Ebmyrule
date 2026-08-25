@@ -4,6 +4,7 @@ payload:
   - DOMAIN-SUFFIX,emby.alex.kdns.fr
   - DOMAIN-SUFFIX,emby.xizi.de5.net
   - DOMAIN-SUFFIX,fd.xizi.de5.net
+  - DOMAIN-SUFFIX,fd.zstar.qzz.io
  
   - DOMAIN-SUFFIX,viclub.top
   - DOMAIN-SUFFIX,vfing.de
@@ -72,7 +73,10 @@ payload:
   - DOMAIN-SUFFIX,emby.yusen.us.ci
   - DOMAIN-SUFFIX,embya.yusen.cyou
   - DOMAIN-SUFFIX,emby.yusen.cc.cd
+  # 茶百道 
   - DOMAIN-SUFFIX,emby.teawaya.com
+  - DOMAIN-SUFFIX,emby.7s.l.cd/
+  # 沪上阿姨
   - DOMAIN-SUFFIX,emby.snowstorm.cc.cd
   # 飞越媒体库
   - DOMAIN-SUFFIX,cf.sfcj.org
