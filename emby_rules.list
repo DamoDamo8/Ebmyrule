@@ -101,6 +101,10 @@ DOMAIN-SUFFIX,yx.emby-cu.ccwu.c
 DOMAIN-SUFFIX,emby.ibukifuko.tech
   # 大厨
 DOMAIN-SUFFIX,e.zhuhule.com
+  # 叶子
+DOMAIN-SUFFIX,lyezi.cc
+DOMAIN-SUFFIX,lyezi.xyz
+DOMAIN-SUFFIX,yz.200036.xyz
 
   
 IP-CIDR,193.123.73.89/32,no-resolve
