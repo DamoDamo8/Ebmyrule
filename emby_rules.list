@@ -105,7 +105,10 @@ DOMAIN-SUFFIX,e.zhuhule.com
 DOMAIN-SUFFIX,lyezi.cc
 DOMAIN-SUFFIX,lyezi.xyz
 DOMAIN-SUFFIX,yz.200036.xyz
-
+  # mirai
+DOMAIN-SUFFIX,mi.miraiemby.com
+  # misaya
+DOMAIN-SUFFIX,emby.misaya.org
   
 IP-CIDR,193.123.73.89/32,no-resolve
 IP-CIDR,162.159.20.184/32,no-resolve
