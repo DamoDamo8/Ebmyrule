@@ -111,6 +111,8 @@ DOMAIN-SUFFIX,mi.miraiemby.com
 DOMAIN-SUFFIX,emby.misaya.org
   # bbemby
 DOMAIN-SUFFIX,emby.bbqwq.com
+  # 二楼
+DOMAIN-SUFFIX,emby.huangmin.cc.cd
    
 IP-CIDR,193.123.73.89/32,no-resolve
 IP-CIDR,162.159.20.184/32,no-resolve
