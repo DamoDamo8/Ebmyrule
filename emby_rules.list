@@ -121,6 +121,7 @@ DOMAIN-SUFFIX,emby.kingemby.com
 DOMAIN-SUFFIX,vody.trevely.de5.net
   # 茶包影院
 DOMAIN-SUFFIX,tbagemby.tbag.dpdns.org
+DOMAIN-SUFFIX,tbagemby.tbag.qzz.io
   
 IP-CIDR,193.123.73.89/32,no-resolve
 IP-CIDR,162.159.20.184/32,no-resolve
