@@ -87,6 +87,8 @@ payload:
   # cola
   - DOMAIN-SUFFIX,emby.misaka.si
   - DOMAIN-SUFFIX,nc1.misaka.si
+  - DOMAIN-SUFFIX,ca1.misaka.si
+  - DOMAIN-SUFFIX,de1.misaka.si
   - DOMAIN-SUFFIX,ct.speedtest.sarl
   - DOMAIN-SUFFIX,cu.speedtest.sarl
   - DOMAIN-SUFFIX,cm.speedtest.sarl
