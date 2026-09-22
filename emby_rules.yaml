@@ -123,6 +123,10 @@ payload:
   # 茶包影院
   - DOMAIN-SUFFIX,tbagemby.tbag.dpdns.org
   - DOMAIN-SUFFIX,tbagemby.tbag.qzz.io
+  # msky影库
+  - DOMAIN-SUFFIX,gcf.betop.uk
+
+  
   
   - IP-CIDR,193.123.73.89/32,no-resolve
   - IP-CIDR,162.159.20.184/32,no-resolve
