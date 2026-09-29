@@ -101,6 +101,5 @@ DOMAIN-SUFFIX,gcf.betop.uk
 IP-CIDR,193.123.73.89/32,no-resolve
 IP-CIDR,162.159.20.184/32,no-resolve
 IP-CIDR,38.147.107.204/32,no-resolve
-DOMAIN,emby.dnscf.dpdns.org
 DOMAIN,114514.fuckme.pushgoodcloud.com
 DOMAIN,genshen.mihoyo.bbroot.com
