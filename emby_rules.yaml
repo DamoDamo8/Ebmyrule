@@ -142,7 +142,6 @@ payload:
   
   # 全匹配
   #- DOMAIN,my.personal.site.com
-  - DOMAIN,emby.dnscf.dpdns.org
   - DOMAIN,114514.fuckme.pushgoodcloud.com
   - DOMAIN,genshen.mihoyo.bbroot.com
   
