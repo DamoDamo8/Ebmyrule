@@ -1,10 +1,14 @@
-name: Auto Sync YAML to List
+name: Build Emby Rules
 
 on:
+  workflow_dispatch:
+
   push:
+    branches:
+      - main
     paths:
-      - 'emby_rules.yaml'
-      - '.github/workflows/*.yml'
+      - "emby_rules.yaml"
+      - ".github/workflows/build-rules.yml"
 
 permissions:
   contents: write
@@ -14,96 +18,526 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-      # 1. 拉取仓库
-      - name: Checkout Repository
+      # ==================================================
+      # Checkout
+      # ==================================================
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-
-      # 2. Python 环境
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
-
-      # 3. YAML 转 LIST
-      - name: Convert YAML to List
+      # ==================================================
+      # 安装 Python YAML 模块
+      # ==================================================
+      - name: Install dependencies
         run: |
-          python <<'PY'
-          import re
+          python3 -m pip install --upgrade pip
+          pip3 install pyyaml
 
-          with open("emby_rules.yaml", "r", encoding="utf-8") as f:
-              lines = f.readlines()
+      # ==================================================
+      # 下载最新稳定版 Mihomo
+      # ==================================================
+      - name: Download latest Mihomo
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          API="https://api.github.com/repos/MetaCubeX/mihomo/releases/latest"
+
+          RELEASE=$(curl -fsSL \
+            -H "Accept: application/vnd.github+json" \
+            "$API")
+
+          TAG=$(echo "$RELEASE" | jq -r '.tag_name')
+
+          echo "Latest Mihomo: $TAG"
+
+          ASSET="mihomo-linux-amd64-v1-${TAG}.gz"
+
+          URL=$(echo "$RELEASE" | jq -r \
+            --arg asset "$ASSET" \
+            '.assets[]
+             | select(.name == $asset)
+             | .browser_download_url')
+
+          if [ -z "$URL" ] || [ "$URL" = "null" ]; then
+            echo "ERROR: Cannot find Mihomo asset:"
+            echo "$ASSET"
+            exit 1
+          fi
+
+          echo "Downloading:"
+          echo "$URL"
+
+          curl -fL "$URL" -o mihomo.gz
+
+          gzip -d mihomo.gz
+          chmod +x mihomo
+
+          ./mihomo -v
+
+      # ==================================================
+      # 从混合 YAML 生成 LIST
+      #
+      # emby_rules.list
+      # emby_domain.list
+      # emby_ip.list
+      # ==================================================
+      - name: Generate LIST files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p ruleset
+
+          python3 <<'PY'
+          import ipaddress
+          import yaml
+          from pathlib import Path
 
 
-          output_lines = []
+          SOURCE = Path("emby_rules.yaml")
+          OUTPUT = Path("ruleset")
 
 
-          for line in lines:
+          DOMAIN_TYPES = {
+              "DOMAIN",
+              "DOMAIN-SUFFIX",
+              "DOMAIN-KEYWORD",
+              "DOMAIN-REGEX",
+          }
 
-              # 删除 payload:
-              if line.strip().startswith("payload:"):
+
+          IP_TYPES = {
+              "IP-CIDR",
+              "IP-CIDR6",
+          }
+
+
+          # ------------------------------------------------
+          # 保持原顺序去重
+          # ------------------------------------------------
+          def dedupe(items):
+              seen = set()
+              result = []
+
+              for item in items:
+                  if item not in seen:
+                      seen.add(item)
+                      result.append(item)
+
+              return result
+
+
+          # ------------------------------------------------
+          # 检查域名
+          # ------------------------------------------------
+          def validate_domain(value, rule):
+
+              if not value:
+                  raise ValueError(
+                      f"空域名规则: {rule}"
+                  )
+
+              if "://" in value:
+                  raise ValueError(
+                      f"发现 URL，不是域名规则: {rule}"
+                  )
+
+              if "/" in value:
+                  raise ValueError(
+                      f"域名包含 /，请检查: {rule}"
+                  )
+
+
+          # ------------------------------------------------
+          # 读取 YAML
+          # ------------------------------------------------
+          if not SOURCE.exists():
+              raise SystemExit(
+                  "ERROR: 找不到 emby_rules.yaml"
+              )
+
+
+          with SOURCE.open(
+              "r",
+              encoding="utf-8"
+          ) as f:
+
+              data = yaml.safe_load(f)
+
+
+          if not isinstance(data, dict):
+              raise SystemExit(
+                  "ERROR: YAML 顶层格式错误"
+              )
+
+
+          payload = data.get("payload")
+
+
+          if not isinstance(payload, list):
+              raise SystemExit(
+                  "ERROR: 找不到 payload 列表"
+              )
+
+
+          classical_rules = []
+          domain_rules = []
+          ip_rules = []
+
+          unsupported = []
+
+
+          # ------------------------------------------------
+          # 开始处理规则
+          # ------------------------------------------------
+          for number, item in enumerate(
+              payload,
+              start=1
+          ):
+
+              if item is None:
+                  continue
+
+              rule = str(item).strip()
+
+              if not rule:
                   continue
 
 
-              # 匹配 YAML 列表规则
-              match = re.match(r'^(\s*)-\s+(.*)$', line)
+              # --------------------------------------------
+              # 检测缺少逗号的规则
+              # --------------------------------------------
+              if (
+                  rule.startswith("DOMAIN")
+                  or rule.startswith("IP-CIDR")
+              ) and "," not in rule:
+
+                  raise ValueError(
+                      f"第 {number} 条规则疑似缺少逗号:\n"
+                      f"{rule}"
+                  )
 
 
-              if match:
+              if "," not in rule:
+                  raise ValueError(
+                      f"第 {number} 条规则无法识别:\n"
+                      f"{rule}"
+                  )
 
-                  indent, content = match.groups()
+
+              rule_type, remainder = rule.split(
+                  ",",
+                  1
+              )
+
+              rule_type = rule_type.strip().upper()
 
 
-                  # 保留被注释的规则
-                  if content.startswith("#"):
-                      output_lines.append(line)
+              # ============================================
+              # DOMAIN
+              # ============================================
+              if rule_type in DOMAIN_TYPES:
+
+                  # DOMAIN-REGEX 可能包含逗号
+                  if rule_type == "DOMAIN-REGEX":
+
+                      value = remainder.strip()
 
                   else:
-                      # 去掉 "- "，保持规则原文
-                      output_lines.append(
-                          content.rstrip("\r\n") + "\n"
+
+                      value = (
+                          remainder
+                          .split(",", 1)[0]
+                          .strip()
                       )
 
 
-              else:
+                  validate_domain(
+                      value,
+                      rule,
+                  )
 
-                  # 保留普通注释、空行
-                  output_lines.append(line)
+
+                  # 原始 classical 规则
+                  classical_rules.append(rule)
 
 
+                  # ----------------------------------------
+                  # 转 behavior=domain 文本格式
+                  # ----------------------------------------
+                  if rule_type == "DOMAIN":
 
-          with open(
-              "emby_rules.list",
-              "w",
+                      domain_rules.append(
+                          f"full:{value}"
+                      )
+
+
+                  elif rule_type == "DOMAIN-SUFFIX":
+
+                      domain_rules.append(
+                          value
+                      )
+
+
+                  elif rule_type == "DOMAIN-KEYWORD":
+
+                      domain_rules.append(
+                          f"keyword:{value}"
+                      )
+
+
+                  elif rule_type == "DOMAIN-REGEX":
+
+                      domain_rules.append(
+                          f"regexp:{value}"
+                      )
+
+
+                  continue
+
+
+              # ============================================
+              # IP-CIDR / IP-CIDR6
+              # ============================================
+              if rule_type in IP_TYPES:
+
+                  value = (
+                      remainder
+                      .split(",", 1)[0]
+                      .strip()
+                  )
+
+
+                  try:
+
+                      ipaddress.ip_network(
+                          value,
+                          strict=False,
+                      )
+
+                  except ValueError:
+
+                      raise ValueError(
+                          f"无效 IP/CIDR:\n{rule}"
+                      )
+
+
+                  classical_rules.append(rule)
+                  ip_rules.append(value)
+
+                  continue
+
+
+              # ============================================
+              # 其他 classical 类型
+              #
+              # 不进入 MRS，但保留到 emby_rules.list
+              # ============================================
+              classical_rules.append(rule)
+              unsupported.append(rule)
+
+
+          # ------------------------------------------------
+          # 去重
+          # ------------------------------------------------
+          classical_rules = dedupe(
+              classical_rules
+          )
+
+          domain_rules = dedupe(
+              domain_rules
+          )
+
+          ip_rules = dedupe(
+              ip_rules
+          )
+
+
+          # ------------------------------------------------
+          # 检查有没有内容
+          # ------------------------------------------------
+          if not domain_rules:
+              raise SystemExit(
+                  "ERROR: 没有找到域名规则"
+              )
+
+
+          if not ip_rules:
+              print(
+                  "WARNING: 没有找到 IP-CIDR 规则"
+              )
+
+
+          # ------------------------------------------------
+          # 写文件
+          # ------------------------------------------------
+          classical_file = (
+              OUTPUT / "emby_rules.list"
+          )
+
+          domain_file = (
+              OUTPUT / "emby_domain.list"
+          )
+
+          ip_file = (
+              OUTPUT / "emby_ip.list"
+          )
+
+
+          classical_file.write_text(
+              "\n".join(classical_rules) + "\n",
               encoding="utf-8",
-              newline="\n"
-          ) as f:
-              f.writelines(output_lines)
+          )
 
 
-          print("emby_rules.list generated")
+          domain_file.write_text(
+              "\n".join(domain_rules) + "\n",
+              encoding="utf-8",
+          )
+
+
+          ip_file.write_text(
+              "\n".join(ip_rules)
+              + ("\n" if ip_rules else ""),
+              encoding="utf-8",
+          )
+
+
+          # ------------------------------------------------
+          # 输出统计
+          # ------------------------------------------------
+          print()
+          print("=" * 50)
+          print("Rule Build Summary")
+          print("=" * 50)
+
+          print(
+              f"Classical : {len(classical_rules)}"
+          )
+
+          print(
+              f"Domain    : {len(domain_rules)}"
+          )
+
+          print(
+              f"IP/CIDR   : {len(ip_rules)}"
+          )
+
+
+          if unsupported:
+
+              print()
+              print(
+                  "以下规则只保留在 emby_rules.list，"
+                  "不会进入 MRS:"
+              )
+
+              for rule in unsupported:
+                  print(
+                      f"  {rule}"
+                  )
+
+
+          print()
+          print("LIST generation completed.")
+
           PY
 
-
-
-      # 4. 提交生成文件
-      - name: Commit and Push Changes
+      # ==================================================
+      # DOMAIN LIST -> MRS
+      # ==================================================
+      - name: Build Domain MRS
+        shell: bash
         run: |
+          set -euo pipefail
 
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ./mihomo convert-ruleset \
+            domain \
+            text \
+            ruleset/emby_domain.list \
+            ruleset/emby_domain.mrs
 
+      # ==================================================
+      # IP LIST -> MRS
+      # ==================================================
+      - name: Build IP MRS
+        shell: bash
+        run: |
+          set -euo pipefail
 
-          git add emby_rules.list
+          if [ -s ruleset/emby_ip.list ]; then
 
+            ./mihomo convert-ruleset \
+              ipcidr \
+              text \
+              ruleset/emby_ip.list \
+              ruleset/emby_ip.mrs
+
+          else
+
+            echo "No IP rules."
+            rm -f ruleset/emby_ip.mrs
+
+          fi
+
+      # ==================================================
+      # 显示生成文件
+      # ==================================================
+      - name: Show generated files
+        shell: bash
+        run: |
+          echo
+          echo "================================="
+          echo "Generated files"
+          echo "================================="
+
+          ls -lh ruleset/
+
+          echo
+          echo "================================="
+          echo "Classical LIST"
+          echo "================================="
+
+          cat ruleset/emby_rules.list
+
+          echo
+          echo "================================="
+          echo "Domain LIST"
+          echo "================================="
+
+          cat ruleset/emby_domain.list
+
+          echo
+          echo "================================="
+          echo "IP LIST"
+          echo "================================="
+
+          cat ruleset/emby_ip.list
+
+      # ==================================================
+      # 自动提交回 main
+      # ==================================================
+      - name: Commit generated files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config \
+            user.name \
+            "github-actions[bot]"
+
+          git config \
+            user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add ruleset/
 
           if git diff --cached --quiet; then
-              echo "No changes"
-          else
-              git commit -m "chore: auto-sync emby_rules.list [skip ci]"
-              git push
+            echo "Rules have not changed."
+            exit 0
           fi
+
+          git commit \
+            -m "chore: update generated Emby rules"
+
+          git push
