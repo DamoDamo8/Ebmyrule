@@ -86,8 +86,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p ruleset
-
           python3 <<'PY'
           import ipaddress
           import yaml
@@ -95,7 +93,6 @@ jobs:
 
 
           SOURCE = Path("emby_rules.yaml")
-          OUTPUT = Path("ruleset")
 
 
           DOMAIN_TYPES = {
@@ -205,7 +202,7 @@ jobs:
 
 
               # --------------------------------------------
-              # 检测缺少逗号的规则
+              # 检测缺少逗号
               # --------------------------------------------
               if (
                   rule.startswith("DOMAIN")
@@ -238,7 +235,6 @@ jobs:
               # ============================================
               if rule_type in DOMAIN_TYPES:
 
-                  # DOMAIN-REGEX 可能包含逗号
                   if rule_type == "DOMAIN-REGEX":
 
                       value = remainder.strip()
@@ -258,13 +254,9 @@ jobs:
                   )
 
 
-                  # 原始 classical 规则
                   classical_rules.append(rule)
 
 
-                  # ----------------------------------------
-                  # 转 behavior=domain 文本格式
-                  # ----------------------------------------
                   if rule_type == "DOMAIN":
 
                       domain_rules.append(
@@ -330,8 +322,8 @@ jobs:
 
               # ============================================
               # 其他 classical 类型
-              #
-              # 不进入 MRS，但保留到 emby_rules.list
+              # 保留到 emby_rules.list
+              # 不进入 MRS
               # ============================================
               classical_rules.append(rule)
               unsupported.append(rule)
@@ -354,7 +346,7 @@ jobs:
 
 
           # ------------------------------------------------
-          # 检查有没有内容
+          # 检查
           # ------------------------------------------------
           if not domain_rules:
               raise SystemExit(
@@ -369,34 +361,21 @@ jobs:
 
 
           # ------------------------------------------------
-          # 写文件
+          # 直接写入仓库根目录
           # ------------------------------------------------
-          classical_file = (
-              OUTPUT / "emby_rules.list"
-          )
-
-          domain_file = (
-              OUTPUT / "emby_domain.list"
-          )
-
-          ip_file = (
-              OUTPUT / "emby_ip.list"
-          )
-
-
-          classical_file.write_text(
+          Path("emby_rules.list").write_text(
               "\n".join(classical_rules) + "\n",
               encoding="utf-8",
           )
 
 
-          domain_file.write_text(
+          Path("emby_domain.list").write_text(
               "\n".join(domain_rules) + "\n",
               encoding="utf-8",
           )
 
 
-          ip_file.write_text(
+          Path("emby_ip.list").write_text(
               "\n".join(ip_rules)
               + ("\n" if ip_rules else ""),
               encoding="utf-8",
@@ -454,8 +433,8 @@ jobs:
           ./mihomo convert-ruleset \
             domain \
             text \
-            ruleset/emby_domain.list \
-            ruleset/emby_domain.mrs
+            emby_domain.list \
+            emby_domain.mrs
 
       # ==================================================
       # IP LIST -> MRS
@@ -465,18 +444,18 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -s ruleset/emby_ip.list ]; then
+          if [ -s emby_ip.list ]; then
 
             ./mihomo convert-ruleset \
               ipcidr \
               text \
-              ruleset/emby_ip.list \
-              ruleset/emby_ip.mrs
+              emby_ip.list \
+              emby_ip.mrs
 
           else
 
             echo "No IP rules."
-            rm -f ruleset/emby_ip.mrs
+            rm -f emby_ip.mrs
 
           fi
 
@@ -491,28 +470,33 @@ jobs:
           echo "Generated files"
           echo "================================="
 
-          ls -lh ruleset/
+          ls -lh \
+            emby_rules.list \
+            emby_domain.list \
+            emby_ip.list \
+            emby_domain.mrs \
+            emby_ip.mrs
 
           echo
           echo "================================="
           echo "Classical LIST"
           echo "================================="
 
-          cat ruleset/emby_rules.list
+          cat emby_rules.list
 
           echo
           echo "================================="
           echo "Domain LIST"
           echo "================================="
 
-          cat ruleset/emby_domain.list
+          cat emby_domain.list
 
           echo
           echo "================================="
           echo "IP LIST"
           echo "================================="
 
-          cat ruleset/emby_ip.list
+          cat emby_ip.list
 
       # ==================================================
       # 自动提交回 main
@@ -530,7 +514,12 @@ jobs:
             user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add ruleset/
+          git add \
+            emby_rules.list \
+            emby_domain.list \
+            emby_ip.list \
+            emby_domain.mrs \
+            emby_ip.mrs
 
           if git diff --cached --quiet; then
             echo "Rules have not changed."
