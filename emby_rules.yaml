@@ -79,6 +79,7 @@ payload:
   # 茶百道 
   - DOMAIN-SUFFIX,emby.teawaya.com
   - DOMAIN-SUFFIX,emby.7s.l.cd
+  - DOMAIN-SUFFIX,emby.chapanda.site
   # 沪上阿姨
   - DOMAIN-SUFFIX,emby.snowstorm.cc.cd
   # 飞越媒体库
