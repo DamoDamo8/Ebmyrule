@@ -94,6 +94,8 @@ payload:
   - DOMAIN-SUFFIX,cu.speedtest.sarl
   - DOMAIN-SUFFIX,cm.speedtest.sarl
   - DOMAIN-SUFFIX,emby-vip.misaka.si
+  - DOMAIN-SUFFIX,emby-sjc.misaka.si
+
 
   # 佬友记
   - DOMAIN-SUFFIX,emby.605305.xyz
