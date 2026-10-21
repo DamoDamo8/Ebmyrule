@@ -135,7 +135,8 @@ payload:
   - DOMAIN-SUFFIX,tbagemby-kr.tbag.dpdns.org
   # msky影库
   - DOMAIN-SUFFIX,gcf.betop.uk
-
+  #盒马生鲜
+  - DOMAIN-SUFFIX,media.freshippo.uno
   
   
   - IP-CIDR,193.123.73.89/32,no-resolve
