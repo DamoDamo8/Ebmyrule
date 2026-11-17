@@ -13,6 +13,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: build-emby-rules-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,6 +27,8 @@ jobs:
       # ==================================================
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # ==================================================
       # 安装 Python YAML 模块
@@ -529,4 +535,6 @@ jobs:
           git commit \
             -m "chore: update generated Emby rules"
 
-          git push
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
