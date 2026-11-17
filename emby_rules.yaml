@@ -23,7 +23,6 @@ payload:
   - DOMAIN-SUFFIX,emby.wtf
   - DOMAIN-SUFFIX,term.wtf
   - DOMAIN-SUFFIX,101514.xyz
-  - DOMAIN-SUFFIX,istyboe.top
   - DOMAIN-SUFFIX,emby.dnscf.dpdns.org
   - DOMAIN-SUFFIX,emby666.alien666.de5.net
   - DOMAIN-SUFFIX,emby777.alien666.de5.net
@@ -31,8 +30,6 @@ payload:
   - DOMAIN-SUFFIX,306699.xyz
   - DOMAIN-SUFFIX,istyboe.top
   - DOMAIN-SUFFIX,inemby.us.ci
-  - DOMAIN-SUFFIX,emby.taotu.ink
-  - DOMAIN-SUFFIX,eb.atrct.cn
   - DOMAIN-SUFFIX,ccdv.cc.cd
   - DOMAIN-SUFFIX,chi.us.ci
   - DOMAIN-SUFFIX,video.emos.best
@@ -56,7 +53,6 @@ payload:
   - DOMAIN-SUFFIX,link01.okemby.org 
   - DOMAIN-SUFFIX,bb.emby.edu.kg
   - DOMAIN-SUFFIX,eemby.cc.cd
-  - DOMAIN-SUFFIX,ok.draxy.eu.cc
   - DOMAIN-SUFFIX,okemby.wangjunqiang.indevs.in
   - DOMAIN-SUFFIX,okemby.wangjunqiang.dev
   - DOMAIN-SUFFIX,ok.liuerao.dpdns.org
