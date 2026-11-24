@@ -140,6 +140,8 @@ payload:
   - DOMAIN-SUFFIX,embycc.wybcs.work
   #9527
   - DOMAIN-SUFFIX,emby.9527.new.tg
+  # cc
+  - DOMAIN-SUFFIX,ccemby.eu.org
   
   
   - IP-CIDR,193.123.73.89/32,no-resolve
